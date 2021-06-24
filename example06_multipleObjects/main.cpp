@@ -119,7 +119,7 @@ namespace osc {
       model[0].addCube(vec3f(0.f,-1.5f, 0.f),vec3f(10.f,.1f,10.f));
       // a unit cube centered on top of that
       model[1].color = vec3f(0.f,1.f,1.f);
-      model[1].addCube(vec3f(0.f,0.f,0.f),vec3f(2.f,2.f,2.f));
+      model[1].addCube(vec3f(0.f,0.f,0.f),vec3f(2.f,3.f,2.f));
 
       Camera camera = { /*from*/vec3f(-10.f,2.f,-12.f),
                         /* at */vec3f(0.f,0.f,0.f),
