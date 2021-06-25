@@ -103,21 +103,26 @@ namespace osc {
         : Ng;*/
 
     const vec3f rayDir = optixGetWorldRayDirection();
-
+    const vec3f rayOrg = optixGetWorldRayOrigin();
+    //const float intersection = fabsf(dot(rayDir-rayOrg,Ng));
+    //printf("%f",intersection);
     if (dot(rayDir, cross(B - A, C - A)) > 0.f)Ng = -Ng;
 
-    //vec3f diffuseColor = sbtData.color;
+    //hit point
+    //vec3f hitp = rayOrg + rayDir * intersection;
 
     // ------------------------------------------------------------------
     // compute shadow
     // ------------------------------------------------------------------
-    const vec3f surfPos //= A + B + C;
+    const vec3f surfPos 
         = (1.f - u - v) * sbtData.vertex[index.x]
         + u * sbtData.vertex[index.y]
         + v * sbtData.vertex[index.z];
     const vec3f lightPos(-5.0f, 5.0f, 5.0f);
     const vec3f lightDir = lightPos - surfPos;
-    vec3f L = normalize(lightDir);
+    const float intersection = fabsf(dot(surfPos - rayOrg, Ng));
+    vec3f hitp = rayOrg + rayDir * intersection;
+    vec3f L = normalize(lightPos-hitp);
     float NdL = dot(Ng, L);
 
     //trace shadow ray:
@@ -151,18 +156,19 @@ namespace osc {
 
     const float cosDN  = 0.1f + .8f*fabsf(dot(rayDir,Ng));
     vec3f &prd = *(vec3f*)getPRD<vec3f>();
-    //prd = cosDN * sbtData.color;
-    //prd = ka * ambient_light*1e-4f;
-   // if (NdL > 0.0) {
-        /*   prd += kd*(lightVisibility)*cosDN*diffuseColor*1e-4f;
-       }*/
-        prd += (.1f + (.2f + .8f * lightVisibility) * cosDN) * diffuseColor;
-/*
+    
+    /*prd = ka * ambient_light* diffuseColor;
+    if (NdL > 0.0) {
+        prd += kd * NdL * diffuseColor;
+
         vec3f H = normalize(L - rayDir);
         float nDh = dot(Ng, H);
-        if (nDh > 0)*/
-        //    prd +=  powf(nDh, 90.f)*ks * vec3f(1.0f, 1.0f, 1.0f) ;
-   // }
+        if (nDh > 0.0) {
+            prd += ks * lightVisibility * powf(nDh, 88.f);
+        }
+
+       }*/
+       prd = (.1f + (.2f*kd + .8f * ks*lightVisibility) * cosDN) * diffuseColor;
 
   }
   
