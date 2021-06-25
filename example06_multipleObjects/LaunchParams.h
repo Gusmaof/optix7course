@@ -29,6 +29,9 @@ namespace osc {
     vec3f  color;
     vec3f *vertex;
     vec3i *index;
+    vec3f ka;
+    vec3f kd;
+    vec3f ks;
   };
   
   struct LaunchParams

@@ -116,9 +116,15 @@ namespace osc {
       std::vector<TriangleMesh> model(2);
       // 100x100 thin ground plane
       model[0].color = vec3f(0.f, 1.f, 0.f);
+      model[0].ka = (0.3f, 0.3f, 0.3f);
+      model[0].kd = (0.6f, 0.7f, 0.8f);
+      model[0].ks = (0.8f, 0.9f, 0.8f);
       model[0].addCube(vec3f(0.f,-1.5f, 0.f),vec3f(10.f,.1f,10.f));
       // a unit cube centered on top of that
       model[1].color = vec3f(0.f,1.f,1.f);
+      model[1].ka = (0.3f, 0.3f, 0.1f);
+      model[1].kd = (194 / 255.f * .6f, 186 / 255.f * .6f, 151 / 255.f * .6f);
+      model[1].ks = (0.4f, 0.4f, 0.4f);
       model[1].addCube(vec3f(0.f,0.f,0.f),vec3f(2.f,3.f,2.f));
 
       Camera camera = { /*from*/vec3f(-10.f,2.f,-12.f),

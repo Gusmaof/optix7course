@@ -74,6 +74,18 @@ namespace osc {
     const TriangleMeshSBTData &sbtData
       = *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
 
+    //ambient
+    const vec3f ka = sbtData.ka;
+    const vec3f ambient_light(0.31f, 0.33f, 0.28f);
+
+    //diffuse
+    const vec3f kd = sbtData.kd;
+    vec3f diffuseColor = sbtData.color;
+
+    //specular
+    vec3f ks = sbtData.ks;
+
+
     // compute normal:
     const float u = optixGetTriangleBarycentrics().x;
     const float v = optixGetTriangleBarycentrics().y;
@@ -94,7 +106,7 @@ namespace osc {
 
     if (dot(rayDir, cross(B - A, C - A)) > 0.f)Ng = -Ng;
 
-    vec3f diffuseColor = sbtData.color;
+    //vec3f diffuseColor = sbtData.color;
 
     // ------------------------------------------------------------------
     // compute shadow
@@ -105,6 +117,8 @@ namespace osc {
         + v * sbtData.vertex[index.z];
     const vec3f lightPos(-5.0f, 5.0f, 5.0f);
     const vec3f lightDir = lightPos - surfPos;
+    vec3f L = normalize(lightDir);
+    float NdL = dot(Ng, L);
 
     //trace shadow ray:
     vec3f lightVisibility = 0.f;
@@ -138,7 +152,18 @@ namespace osc {
     const float cosDN  = 0.1f + .8f*fabsf(dot(rayDir,Ng));
     vec3f &prd = *(vec3f*)getPRD<vec3f>();
     //prd = cosDN * sbtData.color;
-    prd = (.1f + (.2f + .8f *lightVisibility) * cosDN) * diffuseColor;
+    //prd = ka * ambient_light*1e-4f;
+   // if (NdL > 0.0) {
+        /*   prd += kd*(lightVisibility)*cosDN*diffuseColor*1e-4f;
+       }*/
+        prd += (.1f + (.2f + .8f * lightVisibility) * cosDN) * diffuseColor;
+/*
+        vec3f H = normalize(L - rayDir);
+        float nDh = dot(Ng, H);
+        if (nDh > 0)*/
+        //    prd +=  powf(nDh, 90.f)*ks * vec3f(1.0f, 1.0f, 1.0f) ;
+   // }
+
   }
   
 
