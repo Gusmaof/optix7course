@@ -75,17 +75,70 @@ namespace osc {
       = *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
 
     // compute normal:
+    const float u = optixGetTriangleBarycentrics().x;
+    const float v = optixGetTriangleBarycentrics().y;
+
     const int   primID = optixGetPrimitiveIndex();
     const vec3i index  = sbtData.index[primID];
     const vec3f &A     = sbtData.vertex[index.x];
     const vec3f &B     = sbtData.vertex[index.y];
     const vec3f &C     = sbtData.vertex[index.z];
-    const vec3f Ng     = normalize(cross(B-A,C-A));
+    vec3f Ng     = normalize(cross(B-A,C-A));
+    /*vec3f Ns = (sbtData.normal)
+        ? ((1.f - u - v) * sbtData.normal[index.x]
+            + u * sbtData.normal[index.y]
+            + v * sbtData.normal[index.z])
+        : Ng;*/
 
     const vec3f rayDir = optixGetWorldRayDirection();
-    const float cosDN  = 0.2f + .8f*fabsf(dot(rayDir,Ng));
+
+    if (dot(rayDir, cross(B - A, C - A)) > 0.f)Ng = -Ng;
+
+    vec3f diffuseColor = sbtData.color;
+
+    // ------------------------------------------------------------------
+    // compute shadow
+    // ------------------------------------------------------------------
+    const vec3f surfPos //= A + B + C;
+        = (1.f - u - v) * sbtData.vertex[index.x]
+        + u * sbtData.vertex[index.y]
+        + v * sbtData.vertex[index.z];
+    const vec3f lightPos(-5.0f, 5.0f, 5.0f);
+    const vec3f lightDir = lightPos - surfPos;
+
+    //trace shadow ray:
+    vec3f lightVisibility = 0.f;
+    //the values we store the PRD pointer in:
+    uint32_t u0, u1;
+    packPointer(&lightVisibility, u0, u1);
+
+    optixTrace(optixLaunchParams.traversable,
+        surfPos + 1e-3f * Ng,
+        lightDir,
+        1e-3f,      // tmin
+        1.f - 1e-3f,  // tmax
+        0.0f,       // rayTime
+        OptixVisibilityMask(255),
+        // For shadow rays: skip any/closest hit shaders and terminate on first
+        // intersection with anything. The miss shader is used to mark if the
+        // light was visible.
+        OPTIX_RAY_FLAG_DISABLE_ANYHIT
+        | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
+        | OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
+        SHADOW_RAY_TYPE,            // SBT offset
+        RAY_TYPE_COUNT,               // SBT stride
+        SHADOW_RAY_TYPE,            // missSBTIndex 
+        u0, u1);
+
+    // ------------------------------------------------------------------
+    // final shading: a bit of ambient, a bit of directional ambient,
+    // and directional component based on shadowing
+    // ------------------------------------------------------------------
+
+    const float cosDN  = 0.1f + .8f*fabsf(dot(rayDir,Ng));
     vec3f &prd = *(vec3f*)getPRD<vec3f>();
-    prd = cosDN * sbtData.color;
+    //prd = cosDN * sbtData.color;
+    prd = (.1f + (.2f + .8f *lightVisibility) * cosDN) * diffuseColor;
   }
   
 
@@ -95,6 +148,11 @@ namespace osc {
 
   extern "C" __global__ void __anyhit__shadow()
   { /*! not going to be used */
+      // set shadow ray to “fully occluded”
+      //*getPRD<vec3f>() = vec3f(0.f);
+      // and kill the ray –no need to do any more traversal on it
+      // optixTerminateRay(); //For fully opaque: kill the ray upon first occlusion
+
   }
 
   //------------------------------------------------------------------------------
@@ -116,7 +174,7 @@ namespace osc {
   {
       // we didn't hit anything, so the light is visible
       vec3f& prd = *(vec3f*)getPRD<vec3f>();
-      prd = vec3f(0.34f, 0.55f, 0.85f);
+      prd = vec3f(1.f);
   }
 
   //------------------------------------------------------------------------------
@@ -156,9 +214,9 @@ namespace osc {
                0.0f,   // rayTime
                OptixVisibilityMask( 255 ),
                OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-               SURFACE_RAY_TYPE,             // SBT offset
+               RADIANCE_RAY_TYPE,             // SBT offset
                RAY_TYPE_COUNT,               // SBT stride
-               SURFACE_RAY_TYPE,             // missSBTIndex 
+               RADIANCE_RAY_TYPE,             // missSBTIndex 
                u0, u1 );
 
     const int r = int(255.99f*pixelColorPRD.x);

@@ -401,7 +401,7 @@ namespace osc {
           1,
           &pgOptions,
           log, &sizeof_log,
-          &missPGs[SURFACE_RAY_TYPE]
+          &missPGs[RADIANCE_RAY_TYPE]
       ));
       if (sizeof_log > 1) PRINT(log);
 
@@ -446,7 +446,7 @@ namespace osc {
           1,
           &pgOptions,
           log, &sizeof_log,
-          &hitgroupPGs[SURFACE_RAY_TYPE]
+          &hitgroupPGs[RADIANCE_RAY_TYPE]
       ));
       if (sizeof_log > 1) PRINT(log);
 
