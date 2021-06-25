@@ -92,10 +92,15 @@ namespace osc {
   
   /*! constructor - performs all setup, including initializing
     optix, creates module, pipeline, programs, SBT, etc. */
-  SampleRenderer::SampleRenderer(const std::vector<TriangleMesh> &meshes)
+  SampleRenderer::SampleRenderer(const std::vector<TriangleMesh> &meshes, const QuadLight& light)
     : meshes(meshes)
   {
     initOptix();
+
+    launchParams.light.origin = light.origin;
+    launchParams.light.du = light.du;
+    launchParams.light.dv = light.dv;
+    launchParams.light.power = light.power;
       
     std::cout << "#osc: creating optix context ..." << std::endl;
     createContext();

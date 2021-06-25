@@ -50,6 +50,10 @@ namespace osc {
     vec3f              kd;
     vec3f              ks;
   };
+
+  struct QuadLight {
+      vec3f origin, du, dv, power;
+  };
   
   /*! a sample OptiX-7 renderer that demonstrates how to set up
       context, module, programs, pipeline, SBT, etc, and perform a
@@ -63,7 +67,7 @@ namespace osc {
   public:
     /*! constructor - performs all setup, including initializing
       optix, creates module, pipeline, programs, SBT, etc. */
-    SampleRenderer(const std::vector<TriangleMesh> &meshes);
+    SampleRenderer(const std::vector<TriangleMesh> &meshes, const QuadLight& light);
 
     /*! render one frame */
     void render();

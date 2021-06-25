@@ -28,9 +28,10 @@ namespace osc {
     SampleWindow(const std::string &title,
                  const std::vector<TriangleMesh> &model,
                  const Camera &camera,
+                 const QuadLight &light,
                  const float worldScale)
       : GLFCameraWindow(title,camera.from,camera.at,camera.up,worldScale),
-        sample(model)
+        sample(model,light)
     {
       sample.setCamera(camera);
     }
@@ -130,12 +131,20 @@ namespace osc {
       Camera camera = { /*from*/vec3f(-10.f,2.f,-12.f),
                         /* at */vec3f(0.f,0.f,0.f),
                         /* up */vec3f(0.f,1.f,0.f) };
+
+      // some simple, hard-coded light
+      const float light_size = 200.f;
+      QuadLight light = { /* origin */ vec3f(-1000 - light_size,400,-light_size-1000),
+          /* edge 1 */ vec3f(2.f * light_size,0,0),
+          /* edge 2 */ vec3f(0,0,2.f * light_size),
+          /* power */  vec3f(3000000.f) };
+
       // something approximating the scale of the world, so the
       // camera knows how much to move for any given user interaction:
       const float worldScale = 10.f;
 
-      SampleWindow *window = new SampleWindow("Optix 7 Phong Shading",
-                                              model,camera,worldScale);
+      SampleWindow *window = new SampleWindow("FCG - Trabalho Final",
+                                              model,camera,light,worldScale);
       window->run();
       
     } catch (std::runtime_error& e) {
