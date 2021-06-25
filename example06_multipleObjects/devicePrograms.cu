@@ -28,7 +28,7 @@ namespace osc {
   extern "C" __constant__ LaunchParams optixLaunchParams;
 
   // for this simple example, we have a single ray type
-  enum { SURFACE_RAY_TYPE=0, RAY_TYPE_COUNT };
+  //enum { SURFACE_RAY_TYPE=0, RAY_TYPE_COUNT };
   
   static __forceinline__ __device__
   void *unpackPointer( uint32_t i0, uint32_t i1 )
@@ -63,7 +63,12 @@ namespace osc {
   // create a single, dummy, set of them (we do have to have at least
   // one group of them to set up the SBT)
   //------------------------------------------------------------------------------
-  
+
+  extern "C" __global__ void __closesthit__shadow()
+  {
+      /* not going to be used ... */
+  }
+
   extern "C" __global__ void __closesthit__radiance()
   {
     const TriangleMeshSBTData &sbtData
@@ -83,11 +88,15 @@ namespace osc {
     prd = cosDN * sbtData.color;
   }
   
+
   extern "C" __global__ void __anyhit__radiance()
-  { /*! for this simple example, this will remain empty */ }
+  { /*! for this simple example, this will remain empty */
+  }
 
+  extern "C" __global__ void __anyhit__shadow()
+  { /*! not going to be used */
+  }
 
-  
   //------------------------------------------------------------------------------
   // miss program that gets called for any ray that did not have a
   // valid intersection
@@ -95,12 +104,19 @@ namespace osc {
   // as with the anyhit/closest hit programs, in this example we only
   // need to have _some_ dummy function to set up a valid SBT
   // ------------------------------------------------------------------------------
-  
+
   extern "C" __global__ void __miss__radiance()
   {
-    vec3f &prd = *(vec3f*)getPRD<vec3f>();
-    // set to constant white as background color
-    prd = vec3f(1.f);
+      vec3f& prd = *(vec3f*)getPRD<vec3f>();
+      // set to constant white as background color
+      prd = vec3f(0.34f, 0.55f, 0.85f);
+  }
+
+  extern "C" __global__ void __miss__shadow()
+  {
+      // we didn't hit anything, so the light is visible
+      vec3f& prd = *(vec3f*)getPRD<vec3f>();
+      prd = vec3f(0.34f, 0.55f, 0.85f);
   }
 
   //------------------------------------------------------------------------------

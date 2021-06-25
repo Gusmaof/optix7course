@@ -380,52 +380,92 @@ namespace osc {
   /*! does all setup for the miss program(s) we are going to use */
   void SampleRenderer::createMissPrograms()
   {
-    // we do a single ray gen program in this example:
-    missPGs.resize(1);
-      
-    OptixProgramGroupOptions pgOptions = {};
-    OptixProgramGroupDesc pgDesc    = {};
-    pgDesc.kind                     = OPTIX_PROGRAM_GROUP_KIND_MISS;
-    pgDesc.miss.module            = module;           
-    pgDesc.miss.entryFunctionName = "__miss__radiance";
+      // we do a single ray gen program in this example:
+      missPGs.resize(RAY_TYPE_COUNT);
 
-    // OptixProgramGroup raypg;
-    char log[2048];
-    size_t sizeof_log = sizeof( log );
-    OPTIX_CHECK(optixProgramGroupCreate(optixContext,
-                                        &pgDesc,
-                                        1,
-                                        &pgOptions,
-                                        log,&sizeof_log,
-                                        &missPGs[0]
-                                        ));
-    if (sizeof_log > 1) PRINT(log);
+      char log[2048];
+      size_t sizeof_log = sizeof(log);
+
+      OptixProgramGroupOptions pgOptions = {};
+      OptixProgramGroupDesc pgDesc = {};
+      pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
+      pgDesc.miss.module = module;
+
+      // ------------------------------------------------------------------
+      // radiance rays
+      // ------------------------------------------------------------------
+      pgDesc.miss.entryFunctionName = "__miss__radiance";
+
+      OPTIX_CHECK(optixProgramGroupCreate(optixContext,
+          &pgDesc,
+          1,
+          &pgOptions,
+          log, &sizeof_log,
+          &missPGs[SURFACE_RAY_TYPE]
+      ));
+      if (sizeof_log > 1) PRINT(log);
+
+      // ------------------------------------------------------------------
+      // shadow rays
+      // ------------------------------------------------------------------
+      pgDesc.miss.entryFunctionName = "__miss__shadow";
+
+      OPTIX_CHECK(optixProgramGroupCreate(optixContext,
+          &pgDesc,
+          1,
+          &pgOptions,
+          log, &sizeof_log,
+          &missPGs[SHADOW_RAY_TYPE]
+      ));
+      if (sizeof_log > 1) PRINT(log);
   }
     
   /*! does all setup for the hitgroup program(s) we are going to use */
   void SampleRenderer::createHitgroupPrograms()
   {
-    // for this simple example, we set up a single hit group
-    hitgroupPGs.resize(1);
+      // for this simple example, we set up a single hit group
+      hitgroupPGs.resize(RAY_TYPE_COUNT);
 
-    OptixProgramGroupOptions pgOptions = {};
-    OptixProgramGroupDesc pgDesc    = {};
-    pgDesc.kind                     = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
-    pgDesc.hitgroup.moduleCH            = module;
-    pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__radiance";
-    pgDesc.hitgroup.moduleAH            = module;
-    pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__radiance";
+      char log[2048];
+      size_t sizeof_log = sizeof(log);
 
-    char log[2048];
-    size_t sizeof_log = sizeof( log );
-    OPTIX_CHECK(optixProgramGroupCreate(optixContext,
-                                        &pgDesc,
-                                        1,
-                                        &pgOptions,
-                                        log,&sizeof_log,
-                                        &hitgroupPGs[0]
-                                        ));
-    if (sizeof_log > 1) PRINT(log);
+      OptixProgramGroupOptions pgOptions = {};
+      OptixProgramGroupDesc    pgDesc = {};
+      pgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
+      pgDesc.hitgroup.moduleCH = module;
+      pgDesc.hitgroup.moduleAH = module;
+
+      // -------------------------------------------------------
+      // radiance rays
+      // -------------------------------------------------------
+      pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__radiance";
+      pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__radiance";
+
+      OPTIX_CHECK(optixProgramGroupCreate(optixContext,
+          &pgDesc,
+          1,
+          &pgOptions,
+          log, &sizeof_log,
+          &hitgroupPGs[SURFACE_RAY_TYPE]
+      ));
+      if (sizeof_log > 1) PRINT(log);
+
+      // -------------------------------------------------------
+      // shadow rays: technically we don't need this hit group,
+      // since we just use the miss shader to check if we were not
+      // in shadow
+      // -------------------------------------------------------
+      pgDesc.hitgroup.entryFunctionNameCH = "__closesthit__shadow";
+      pgDesc.hitgroup.entryFunctionNameAH = "__anyhit__shadow";
+
+      OPTIX_CHECK(optixProgramGroupCreate(optixContext,
+          &pgDesc,
+          1,
+          &pgOptions,
+          log, &sizeof_log,
+          &hitgroupPGs[SHADOW_RAY_TYPE]
+      ));
+      if (sizeof_log > 1) PRINT(log);
   }
     
 
@@ -507,13 +547,15 @@ namespace osc {
     int numObjects = (int)meshes.size();
     std::vector<HitgroupRecord> hitgroupRecords;
     for (int meshID=0;meshID<numObjects;meshID++) {
-      HitgroupRecord rec;
-      // all meshes use the same code, so all same hit group
-      OPTIX_CHECK(optixSbtRecordPackHeader(hitgroupPGs[0],&rec));
-      rec.data.color  = meshes[meshID].color;
-      rec.data.vertex = (vec3f*)vertexBuffer[meshID].d_pointer();
-      rec.data.index  = (vec3i*)indexBuffer[meshID].d_pointer();
-      hitgroupRecords.push_back(rec);
+        for (int rayID = 0; rayID < RAY_TYPE_COUNT; rayID++) {
+            HitgroupRecord rec;
+            // all meshes use the same code, so all same hit group
+            OPTIX_CHECK(optixSbtRecordPackHeader(hitgroupPGs[0], &rec));
+            rec.data.color = meshes[meshID].color;
+            rec.data.vertex = (vec3f*)vertexBuffer[meshID].d_pointer();
+            rec.data.index = (vec3i*)indexBuffer[meshID].d_pointer();
+            hitgroupRecords.push_back(rec);
+        }
     }
     hitgroupRecordsBuffer.alloc_and_upload(hitgroupRecords);
     sbt.hitgroupRecordBase          = hitgroupRecordsBuffer.d_pointer();

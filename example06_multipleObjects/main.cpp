@@ -128,7 +128,7 @@ namespace osc {
       // camera knows how much to move for any given user interaction:
       const float worldScale = 10.f;
 
-      SampleWindow *window = new SampleWindow("Optix 7 Course Example",
+      SampleWindow *window = new SampleWindow("Optix 7 Phong Shading",
                                               model,camera,worldScale);
       window->run();
       
