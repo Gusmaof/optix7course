@@ -118,15 +118,10 @@ namespace osc {
 
     const vec3f rayDir = optixGetWorldRayDirection();
     const vec3f rayOrg = optixGetWorldRayOrigin();
-    //const float intersection = fabsf(dot(rayDir-rayOrg,Ng));
-    //printf("%f",intersection);
+    
     if (dot(rayDir, cross(B - A, C - A)) > 0.f)Ng = -Ng;
 
-    //hit point
-    //vec3f hitp = rayOrg + rayDir * intersection;
-
-
-    //ADDED
+    //diffuse + ambient
     vec3f pixelColor = (0.1f + 0.2f * fabsf(dot(Ng, rayDir))) * diffuseColor;
 
     // ------------------------------------------------------------------
@@ -137,8 +132,8 @@ namespace osc {
         + u * sbtData.vertex[index.y]
         + v * sbtData.vertex[index.z];
 
-    //ADDED
-    const int numLightSamples = NUM_LIGHT_SAMPLES;
+     const int numLightSamples = NUM_LIGHT_SAMPLES;
+
     for (int lightSampleID = 0; lightSampleID < numLightSamples; lightSampleID++) {
 
         //const vec3f lightPos(-5.0f, 5.0f, 5.0f);
@@ -184,42 +179,6 @@ namespace osc {
     }
 
     prd.pixelColor = pixelColor;
-        /*const float intersection = fabsf(dot(surfPos - rayOrg, Ng));
-        vec3f hitp = rayOrg + rayDir * intersection;
-        vec3f L = normalize(lightPos-hitp);
-        float NdL = dot(Ng, L);
-
-    //trace shadow ray:
-    vec3f lightVisibility = 0.f;
-    //the values we store the PRD pointer in:
-    uint32_t u0, u1;
-    packPointer(&lightVisibility, u0, u1);
-
-    optixTrace(optixLaunchParams.traversable,
-        surfPos + 1e-3f * Ng,
-        lightDir,
-        1e-3f,      // tmin
-        1.f - 1e-3f,  // tmax
-        0.0f,       // rayTime
-        OptixVisibilityMask(255),
-        // For shadow rays: skip any/closest hit shaders and terminate on first
-        // intersection with anything. The miss shader is used to mark if the
-        // light was visible.
-        OPTIX_RAY_FLAG_DISABLE_ANYHIT
-        | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
-        | OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
-        SHADOW_RAY_TYPE,            // SBT offset
-        RAY_TYPE_COUNT,               // SBT stride
-        SHADOW_RAY_TYPE,            // missSBTIndex 
-        u0, u1);
-
-    // ------------------------------------------------------------------
-    // final shading: a bit of ambient, a bit of directional ambient,
-    // and directional component based on shadowing
-    // ------------------------------------------------------------------
-
-    const float cosDN  = 0.1f + .8f*fabsf(dot(rayDir,Ng));
-    vec3f &prd = *(vec3f*)getPRD<vec3f>();
     
     /*prd = ka * ambient_light* diffuseColor;
     if (NdL > 0.0) {
@@ -272,19 +231,6 @@ namespace osc {
       prd = vec3f(1.f);
   }
 
-  //extern "C" __global__ void __miss__radiance()
-  //{
-  //    vec3f& prd = *(vec3f*)getPRD<vec3f>();
-  //    // set to constant white as background color
-  //    prd = vec3f(0.34f, 0.55f, 0.85f);
-  //}
-
-  //extern "C" __global__ void __miss__shadow()
-  //{
-  //    // we didn't hit anything, so the light is visible
-  //    vec3f& prd = *(vec3f*)getPRD<vec3f>();
-  //    prd = vec3f(1.f);
-  //}
 
   //------------------------------------------------------------------------------
   // ray gen program - the actual rendering happens in here
@@ -353,40 +299,4 @@ namespace osc {
     optixLaunchParams.frame.colorBuffer[fbIndex] = rgba;
   }
 
-  //  // normalized screen plane position, in [0,1]^2
-  //  const vec2f screen(vec2f(ix+.5f,iy+.5f)
-  //                     / vec2f(optixLaunchParams.frame.size));
-  //  
-  //  // generate ray direction
-  //  vec3f rayDir = normalize(camera.direction
-  //                           + (screen.x - 0.5f) * camera.horizontal
-  //                           + (screen.y - 0.5f) * camera.vertical);
-
-  //  optixTrace(optixLaunchParams.traversable,
-  //             camera.position,
-  //             rayDir,
-  //             0.f,    // tmin
-  //             1e20f,  // tmax
-  //             0.0f,   // rayTime
-  //             OptixVisibilityMask( 255 ),
-  //             OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
-  //             RADIANCE_RAY_TYPE,             // SBT offset
-  //             RAY_TYPE_COUNT,               // SBT stride
-  //             RADIANCE_RAY_TYPE,             // missSBTIndex 
-  //             u0, u1 );
-
-  //  const int r = int(255.99f*pixelColorPRD.x);
-  //  const int g = int(255.99f*pixelColorPRD.y);
-  //  const int b = int(255.99f*pixelColorPRD.z);
-
-  //  // convert to 32-bit rgba value (we explicitly set alpha to 0xff
-  //  // to make stb_image_write happy ...
-  //  const uint32_t rgba = 0xff000000
-  //    | (r<<0) | (g<<8) | (b<<16);
-
-  //  // and write to frame buffer ...
-  //  const uint32_t fbIndex = ix+iy*optixLaunchParams.frame.size.x;
-  //  optixLaunchParams.frame.colorBuffer[fbIndex] = rgba;
-  //}
-  //
 } // ::osc
